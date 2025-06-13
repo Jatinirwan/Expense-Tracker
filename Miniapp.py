@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 from datetime import date
+data_to_use=pd.DataFrame()
 
 st.set_page_config(page_title="Expense Tracker", layout="wide")
 
@@ -103,20 +104,34 @@ if not df.empty:
 
 else:
     st.info("Please upload a file or enter data manually to get started.")
-data_to_use["Date"] = pd.to_datetime(data_to_use["Date"])
-data_to_use["Month"] = data_to_use["Date"].dt.to_period("M").astype(str)
-monthly_summary = data_to_use.groupby("Month")["Amount"].sum().reset_index()
-monthly_summary = monthly_summary.sort_values("Month")
-fig = px.line(
-    monthly_summary,
-    x="Month",
-    y="Amount",
-    markers=True,
-    title="Monthly Expense Trend",
-    labels={"Month": "Month-Year", "Amount": "Total Expense"},
-    template="plotly_white"
-)
-st.plotly_chart(fig, use_container_width=True)
+st.subheader("📅 Monthly Expense Trend")
+if "Date" in data_to_use.columns and "Amount" in data_to_use.columns:
+    try:
+        data_to_use["Date"] = pd.to_datetime(data_to_use["Date"], errors='coerce')
+        data_to_use = data_to_use.dropna(subset=["Date"])
+        data_to_use["Month"] = data_to_use["Date"].dt.to_period("M").astype(str)
+        monthly_summary = data_to_use.groupby("Month")["Amount"].sum().reset_index()
+        fig_line = px.line(
+            monthly_summary,
+            x="Month",
+            y="Amount",
+            title="Monthly Expense Trend (Line Chart)",
+            markers=True,
+            template="plotly_white"
+        )
+        fig_line.update_traces(line=dict(color="teal", width=3))
+        fig_line.update_layout(
+            xaxis_title="Month",
+            yaxis_title="Total Expense",
+            xaxis_tickangle=-45
+        )
+        st.plotly_chart(fig_line, use_container_width=True)
+    except Exception as e:
+        st.error(f"⚠️ Error creating monthly trend chart: {e}")
+else:
+    st.info("Please make sure your data includes 'Date' and 'Amount' columns.")
+
+
 
 
 
